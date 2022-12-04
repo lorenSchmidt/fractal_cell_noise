@@ -12,7 +12,52 @@ this is the heart of the cellular noise algorithm. it's a single x, y lookup. th
 |x     x  | falls off cleanly to 0. 
 |  x      | 
 +---------+ d is density- at density 1 you have 1 square for the entire texture space. at density 2 it's 2 squares by 2, etc.. seed is the seed for this octave. softness alters the shape of the falloff (but it always has the same diameter). the heights can be customized customized by setting the bias value (center) and range (it goes from bias - range to bias + range)   */
-function curve_stack_xy(x, y, xsize = 256, ysize = 256, d = 1, seed = 0, softness = 1, samples = 4, bias = 0, range = 1 ) {
+
+// this variant uses a trick to reduce samples
+// sample radius is 1/2 square edge instead of 1, which makes overlap from neighboring cells never more than 1/2 square length. this means we can check which quadrant we're in and only check the three nearest neighbors, instead of all 8 neighbors.
+function curve_stack_2x2_xy(x, y, xsize = 256, ysize = 256, d = 1, seed = 0, softness = 1, samples = 4, bias = 0, range = 1 ) {
+
+    x /= xsize; y /= xsize 
+    let ix = Math.floor(x * d); let iy = Math.floor(y * d)
+    let ti = 0 // random number table index
+
+    c_height = 0
+
+    let left = ix - 1 + Math.floor(x * 2 * d) % 2
+    let top = iy - 1 + Math.floor(y * 2 * d) % 2
+    let right = left + 1; let bottom = top + 1
+
+    // this uses every point within the radius. when doing worley noise, we calculate distances for each point, and compare, getting various other parameters per point. instead, we can drop the distance comparisons, and instead get a height per point and run it through a lightweight kernel, and accumulate
+    for (let cy = top; cy <= bottom; cy ++) {
+        for (let cx = left; cx <= right; cx ++) {
+            // this is a deterministic noise function with two integer inputs
+            ti = pos3int((cx + d) % d, (cy + d) % d, noise_seed)
+            // seed our rng with that value
+        
+            let count = samples
+            // this bounded curve runs from -1 to 1. i believe this means that we want to multiply the distance by d. however, this seems to leave seams? maybe i am wrong about the numbers.
+            for (let a = 0; a < count; a ++) {
+                let px = cx / d + (noise_table[(ti ++) % nt_size] / nt_size) / d
+                let py = cy / d + (noise_table[(ti ++) % nt_size] / nt_size) / d
+                let distance = d * Math.sqrt((x - px) ** 2 + (y - py) ** 2) * 2
+                let height = bias + -range + 2 * range * noise_table[(ti ++) % nt_size] / nt_size
+                // this is a bounded -1 to 1 variant of the witch of agnesi. this will prevent seams when points drop out of the set.
+                if (distance < 1.0) {
+                    let a = (softness * (1 - distance * distance) 
+                            / (softness + distance * distance))
+                    a = a * a
+                    // note that this worked ^ 2, but the derivative was not 0 at -1 and 1
+                    c_height += height * a
+                }
+            }
+        }
+    }
+
+    return c_height
+}
+
+
+function curve_stack_3x3_xy(x, y, xsize = 256, ysize = 256, d = 1, seed = 0, softness = 1, samples = 4, bias = 0, range = 1 ) {
 
     x /= xsize; y /= xsize 
     let ix = Math.floor(x * d); let iy = Math.floor(y * d)
@@ -28,6 +73,7 @@ function curve_stack_xy(x, y, xsize = 256, ysize = 256, d = 1, seed = 0, softnes
             ti = pos3int((cx + d) % d, (cy + d) % d, noise_seed)
             // seed our rng with that value
         
+            // let count = 1 + prime_cycle() % (samples - 1)
             let count = samples
             // this bounded curve runs from -1 to 1. i believe this means that we want to multiply the distance by d. however, this seems to leave seams? maybe i am wrong about the numbers.
             for (let a = 0; a < count; a ++) {
@@ -52,14 +98,12 @@ function curve_stack_xy(x, y, xsize = 256, ysize = 256, d = 1, seed = 0, softnes
 
 
 var stack_octaves = 1
-function cell_noise_xy(x, y, xsize = 256, ysize = 256, density = 4, octaves = 2, amplitude_ratio = 1/2, softness = 1, samples = 4, bias = 0, range = 1 ) {
+function cell_noise_xy(x, y, xsize = 256, ysize = 256, density = 4, seed = 0,octaves = 2, amplitude_ratio = 1/2, softness = 1, samples = 4, bias = 0, range = 1 ) {
     let surface = 0
-    // to make this seedable like the other noise functions, we can get an initial seed from noise_seed, then get a series of octave seeds from that
-    let seed = noise_seed
     for (let a = 0; a < octaves; a ++) {
         let octave_seed = noise_table[seed % nt_size] // inline prime cycle
         seed += pc_increment
-        let layer = curve_stack_xy(x, y, xsize, ysize, density * 2 ** a, octave_seed, softness, samples, bias, range)
+        let layer = curve_stack_2x2_xy(x, y, xsize, ysize, density * 2 ** a, octave_seed, softness, samples, bias, range)
 
         surface += (amplitude_ratio ** a) * layer
     }
