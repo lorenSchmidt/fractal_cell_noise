@@ -4,20 +4,19 @@
 octavia noise
 
 --------------------------------------------------------------------------------
+
 this is the heart of the cellular noise algorithm. it's a single x, y lookup. the noise loops on itself, and is a rectangle xsize by ysize. x and y are the current point in space we are calculating for (floating point is fine). the space is divided into squares. n points are deterministically placed             
 +---------+ in the square ("samples" controls this). each is given a random 
 |   x     | height, by default -1 to 1. a soft 0-1 kernel is centered on each. 
 |         | it has a diameter equal to the square size, outside of which it 
 |x     x  | falls off cleanly to 0. 
 |  x      | 
-+---------+ d is density- at density 1 you have 1 square for the entire texture space. at density 2 it's 2 squares by 2, etc.. seed is the seed for this octave. softness alters the shape of the falloff (but it always has the same diameter). the heights can be customized customized by setting the bias value (center) and range (it goes from bias - range to bias + range).
-
-this is generalizable to n dimensions.
-*/
++---------+ d is density- at density 1 you have 1 square for the entire texture space. at density 2 it's 2 squares by 2, etc.. seed is the seed for this octave. softness alters the shape of the falloff (but it always has the same diameter). the heights can be customized customized by setting the bias value (center) and range (it goes from bias - range to bias + range)   */
 function curve_stack_xy(x, y, xsize = 256, ysize = 256, d = 1, seed = 0, softness = 1, samples = 4, bias = 0, range = 1 ) {
 
     x /= xsize; y /= xsize 
     let ix = Math.floor(x * d); let iy = Math.floor(y * d)
+    let ti = 0 // random number table index
 
     c_height = 0
 
@@ -26,17 +25,16 @@ function curve_stack_xy(x, y, xsize = 256, ysize = 256, d = 1, seed = 0, softnes
         for (let ox = -1; ox <= 1; ox ++) {
             let cx = ix + ox; let cy = iy + oy
             // this is a deterministic noise function with two integer inputs
-            pc_seed = pos3int((cx + d) % d, (cy + d) % d, noise_seed)
+            ti = pos3int((cx + d) % d, (cy + d) % d, noise_seed)
             // seed our rng with that value
         
-            // let count = 1 + prime_cycle() % (samples - 1)
             let count = samples
             // this bounded curve runs from -1 to 1. i believe this means that we want to multiply the distance by d. however, this seems to leave seams? maybe i am wrong about the numbers.
             for (let a = 0; a < count; a ++) {
-                let px = cx / d + (prime_cycle() / nt_size) / d 
-                let py = cy / d + (prime_cycle() / nt_size) / d
+                let px = cx / d + (noise_table[(ti ++) % nt_size] / nt_size) / d 
+                let py = cy / d + (noise_table[(ti ++) % nt_size] / nt_size) / d
                 let distance = d * Math.sqrt((x - px) ** 2 + (y - py) ** 2) 
-                let height = bias + -range + 2 * range * prime_cycle() / nt_size
+                let height = bias + -range + 2 * range * noise_table[(ti ++) % nt_size] / nt_size
                 // this is a bounded -1 to 1 variant of the witch of agnesi. this will prevent seams when points drop out of the set.
                 if (distance < 1.0) {
                     let a = (softness * (1 - distance * distance) 
@@ -132,7 +130,8 @@ function init_random_table() {
 }
 
 
-// if you walk through a table, offsetting your index by a prime number which doesn't divide evenly into your table size, you will cycle through all the entries in the array exactly once, in a nonrepeating order.
+// if you walk through a table, offsetting your index by a prime number which doesn't divide evenly into your table size, you will cycle through all the entries in the array exactly once, in a nonrepeating order. 
+// there are three instances of this in the algorithm, all inline, but this self-contained function is here for clarity
 var pc_increment = 101159
 var pc_seed = 0
 function prime_cycle() {
