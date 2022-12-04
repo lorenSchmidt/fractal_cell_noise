@@ -12,7 +12,7 @@ this has the parameters you'd expect from perlin or value noise: octaves and amp
 
 ### octaves
 ![Screenshot](octaves.png)
-like perlin or value noise, this adds successively finer features via additional layers of noise. this is the only parameter which affects speed- it's linearly slower the more octaves are combined. right to left: one octave, six, twelve.
+like perlin or value noise, this adds successively finer features via additional layers of noise. this affects speed- it's linearly slower the more octaves are combined. right to left: one octave, six, twelve.
 
 ### amplitude ratio
 ![Screenshot](amplitude_ratio.png)
@@ -21,6 +21,9 @@ this is also known as roughness or persistence. this governs how the octaves are
 ### softness
 ![Screenshot](softness.png)
 0-1. this governs the falloff used for each sample point. the default is 1, which is as continuous as possible. lower softness values can result in steeper, more defined grains, pits, or spires. 
+
+### samples
+space is partitioned into squares. this controls how many samples are placed within each. the radius of each sample is 1, relative to square edge length, so coverage is high, and they overlap significantly with neighboring squares. 2-4 samples will give you decent coverage unless the softness is very low. the algorithm is linearly slower the more samples are placed.
 
 ### bias, range
 ![Screenshot](bias_range.png)
