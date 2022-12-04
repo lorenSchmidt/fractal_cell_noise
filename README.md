@@ -1,5 +1,4 @@
-# octavia_noise
-a fractal noise algorithm named after a very nice cat
+# fractal_cell_noise
 
 ![Screenshot](twelve_octaves.png)
 
