@@ -31,7 +31,7 @@ function curve_stack_2x2_xy(x, y, xsize = 256, ysize = 256, d = 1, seed = 0, sof
     for (let cy = top; cy <= bottom; cy ++) {
         for (let cx = left; cx <= right; cx ++) {
             // this is a deterministic noise function with two integer inputs
-            ti = pos3int((cx + d) % d, (cy + d) % d, noise_seed)
+            ti = pos3int((cx + d) % d, (cy + d) % d, seed)
             // seed our rng with that value
         
             let count = samples
@@ -70,7 +70,7 @@ function curve_stack_3x3_xy(x, y, xsize = 256, ysize = 256, d = 1, seed = 0, sof
         for (let ox = -1; ox <= 1; ox ++) {
             let cx = ix + ox; let cy = iy + oy
             // this is a deterministic noise function with two integer inputs
-            ti = pos3int((cx + d) % d, (cy + d) % d, noise_seed)
+            ti = pos3int((cx + d) % d, (cy + d) % d, seed)
             // seed our rng with that value
         
             // let count = 1 + prime_cycle() % (samples - 1)
