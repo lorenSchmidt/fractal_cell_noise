@@ -166,6 +166,7 @@ var seed = 88883
 var noise_table = []
 var ns = 256
 var nt_size = ns * ns
+var nt_sizem1 = nt_size - 1
 function init_random_table() {
     let list = []
     for (let a = 0; a < nt_size; a ++) {
