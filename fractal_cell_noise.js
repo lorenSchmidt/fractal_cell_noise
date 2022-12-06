@@ -20,34 +20,37 @@ function curve_stack_2x2_xy(x, y, xsize = 256, ysize = 256, d = 1, seed = 0, sof
     x /= xsize; y /= xsize 
     let ix = Math.floor(x * d); let iy = Math.floor(y * d)
     let ti = 0 // random number table index
+    let dm1 = d - 1 // for the bitwise & instead of % range trick
 
     c_height = 0
 
-    let left = ix - 1 + Math.floor(x * 2 * d) % 2
-    let top = iy - 1 + Math.floor(y * 2 * d) % 2
+    // this variant uses a trick to reduce samples
+    // sample radius is 1/2 square edge instead of 1, which makes overlap from neighboring cells never more than 1/2 square length. this means we can check which quadrant we're in and only check the three nearest neighbors, instead of all 8 neighbors.
+    let left = ix - 1 + (Math.floor(x * 2 * d) & 1)
+    let top = iy - 1 + (Math.floor(y * 2 * d) & 1)
     let right = left + 1; let bottom = top + 1
 
     // this uses every point within the radius. when doing worley noise, we calculate distances for each point, and compare, getting various other parameters per point. instead, we can drop the distance comparisons, and instead get a height per point and run it through a lightweight kernel, and accumulate
+    let px, py, distance_squared
     for (let cy = top; cy <= bottom; cy ++) {
         for (let cx = left; cx <= right; cx ++) {
             // this is a deterministic noise function with two integer inputs
-            ti = pos3int((cx + d) % d, (cy + d) % d, noise_seed)
+            ti = pos3int((cx + d) & dm1, (cy + d) & dm1, noise_seed)
             // seed our rng with that value
         
-            let count = samples
             // this bounded curve runs from -1 to 1. i believe this means that we want to multiply the distance by d. however, this seems to leave seams? maybe i am wrong about the numbers.
-            for (let a = 0; a < count; a ++) {
-                let px = cx / d + (noise_table[(ti ++) % nt_size] / nt_size) / d
-                let py = cy / d + (noise_table[(ti ++) % nt_size] / nt_size) / d
-                let distance = d * Math.sqrt((x - px) ** 2 + (y - py) ** 2) * 2
-                let height = bias + -range + 2 * range * noise_table[(ti ++) % nt_size] / nt_size
+            for (let a = 0; a < samples; a ++) {
+                px = cx / d + noise_table[(ti ++) & nt_sizem1] / nt_size / d
+                py = cy / d + noise_table[(ti ++) & nt_sizem1] / nt_size / d
+                distance_squared = d * d * ((x - px) ** 2 + (y - py) ** 2) * 4
+                
+                let h = bias + -range + 2 * range * noise_table[(ti ++) % nt_size] / nt_size
                 // this is a bounded -1 to 1 variant of the witch of agnesi. this will prevent seams when points drop out of the set.
-                if (distance < 1.0) {
-                    let a = (softness * (1 - distance * distance) 
-                            / (softness + distance * distance))
-                    a = a * a
+                if (distance_squared < 1.0) {
+                    let amp = (softness * (1 - distance_squared) / (softness + distance_squared))
+                    amp = amp * amp
                     // note that this worked ^ 2, but the derivative was not 0 at -1 and 1
-                    c_height += height * a
+                    c_height += h * amp
                 }
             }
         }
