@@ -31,9 +31,12 @@ function curve_stack_2x2_xy(x, y, xsize = 256, ysize = 256, d = 1, seed = 0, sof
     let right = left + 1; let bottom = top + 1
 
     // this uses every point within the radius. when doing worley noise, we calculate distances for each point, and compare, getting various other parameters per point. instead, we can drop the distance comparisons, and instead get a height per point and run it through a lightweight kernel, and accumulate
-    let px, py, distance_squared
-    for (let cy = top; cy <= bottom; cy ++) {
-        for (let cx = left; cx <= right; cx ++) {
+    let px, py, distance_squared, amp
+    let cx = left, cy = top
+    let sum = 0
+    while (cy <= bottom) {
+        cx = left
+        while (cx <= right) {
             // this is a deterministic noise function with two integer inputs
             ti = pos3int((cx + d) & dm1, (cy + d) & dm1, noise_seed)
             // seed our rng with that value
@@ -47,16 +50,18 @@ function curve_stack_2x2_xy(x, y, xsize = 256, ysize = 256, d = 1, seed = 0, sof
                 let h = bias + -range + 2 * range * noise_table[(ti ++) % nt_size] / nt_size
                 // this is a bounded -1 to 1 variant of the witch of agnesi. this will prevent seams when points drop out of the set.
                 if (distance_squared < 1.0) {
-                    let amp = (softness * (1 - distance_squared) / (softness + distance_squared))
+                    amp = (softness * (1 - distance_squared) / (softness + distance_squared))
                     amp = amp * amp
                     // note that this worked ^ 2, but the derivative was not 0 at -1 and 1
-                    c_height += h * amp
+                    sum += h * amp
                 }
             }
+            cx ++
         }
+        cy ++
     }
 
-    return c_height
+    return sum
 }
 
 
