@@ -17,7 +17,7 @@ this is the heart of the cellular noise algorithm. it's a single x, y lookup. th
 // sample radius is 1/2 square edge instead of 1, which makes overlap from neighboring cells never more than 1/2 square length. this means we can check which quadrant we're in and only check the three nearest neighbors, instead of all 8 neighbors.
 function curve_stack_2x2_xy(x, y, xsize = 256, ysize = 256, d = 1, seed = 0, softness = 1, samples = 4, bias = 0, range = 1 ) {
 
-    x /= xsize; y /= xsize 
+    x /= xsize; y /= ysize 
     let ix = Math.floor(x * d); let iy = Math.floor(y * d)
     let ti = 0 // random number table index
     let dm1 = d - 1 // for the bitwise & instead of % range trick
@@ -67,7 +67,7 @@ function curve_stack_2x2_xy(x, y, xsize = 256, ysize = 256, d = 1, seed = 0, sof
 
 function curve_stack_3x3_xy(x, y, xsize = 256, ysize = 256, d = 1, seed = 0, softness = 1, samples = 4, bias = 0, range = 1 ) {
 
-    x /= xsize; y /= xsize 
+    x /= xsize; y /= ysize 
     let ix = Math.floor(x * d); let iy = Math.floor(y * d)
     let ti = 0 // random number table index
 
