@@ -1,7 +1,7 @@
 # octavia noise
 a fractal noise algorithm named after a very nice cat
 
-![Screenshot](twelve_octaves.png)
+![Screenshot](twelve_octaves_thumb.png)
 
 this is functionally similar to well known fractal noise algorithms such as value noise, perlin noise, or simplex noise, but does not exhibit the same grid artifacts. it's useful for situations which benefit from organic feature placement or very natural slope distribution (when using perlin or value noise in slope-intensive applications, grid artifacts can be a problem). 
 
